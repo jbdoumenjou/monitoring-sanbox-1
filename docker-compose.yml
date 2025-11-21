@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Go application generating metrics
+  metrics-app:
+    build: .
+    container_name: metrics-app
+    ports:
+      - "8080:8080"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # VictoriaMetrics - Time series database
+  victoriametrics:
+    image: docker.io/victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    ports:
+      - "8428:8428"
+    command:
+      - '--storageDataPath=/victoria-metrics-data'
+      - '--httpListenAddr=:8428'
+      - '--retentionPeriod=12'  # Keep data for 12 months
+      - '--promscrape.config=/etc/victoriametrics/scrape.yml'
+    volumes:
+      - vmdata:/victoria-metrics-data
+      - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Grafana - Visualization platform
+  grafana:
+    image: docker.io/grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - monitoring
+    depends_on:
+      - victoriametrics
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  vmdata:
+  grafana-data:

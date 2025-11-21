@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s      # How frequently to scrape targets
+
+scrape_configs:
+  # Scrape our Go metrics application
+  - job_name: 'metrics-app'
+    static_configs:
+      - targets: ['metrics-app:8080']
+        labels:
+          environment: 'development'
+          app: 'metrics-demo'
+
+  # Scrape VictoriaMetrics itself
+  - job_name: 'victoriametrics'
+    static_configs:
+      - targets: ['victoriametrics:8428']
+        labels:
+          environment: 'development'
